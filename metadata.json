@@ -1,0 +1,8 @@
+{
+  "name": "deutsch",
+  "description": "Display words to learn German",
+  "uuid": "gnome-deutsch@flameweb.org",
+  "shell-version": [
+    "46"
+  ]
+}

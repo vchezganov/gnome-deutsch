@@ -1,0 +1,14 @@
+.number {
+    color: gray;
+    font-size: 0.8em;
+}
+
+.primary {
+    color: orange;
+    font-weight: bold;
+}
+
+.secondary {
+    color: limegreen;
+    font-weight: bold;
+}
