@@ -22,6 +22,10 @@ const DeutschIndicator = GObject.registerClass(
             const dontCreateMenu = true;
             super._init(0, ext.metadata.name, dontCreateMenu);
 
+            // Settings
+            this._refreshSeconds = 3 * 60;
+
+            // Layout
             const box = new St.BoxLayout();
 
             // Panel total
@@ -64,6 +68,11 @@ const DeutschIndicator = GObject.registerClass(
 
             this._loadData(ext);
             this._startTimer();
+
+            // Adding events
+            this.connect('button-release-event', () => {
+                this._next();
+            });
         }
 
         _onDestroy() {
@@ -92,8 +101,7 @@ const DeutschIndicator = GObject.registerClass(
             this._state = 'name';
             this._refresh()
 
-            const seconds = 3 * 60;
-            this._sourceId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, seconds, () => {
+            this._sourceId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this._refreshSeconds, () => {
                 this._refresh();
 
                 return GLib.SOURCE_CONTINUE;
@@ -134,13 +142,48 @@ const DeutschIndicator = GObject.registerClass(
                 this._counter = 0;
             }
         }
+
+        _next() {
+            if (this._sourceId) {
+                GLib.Source.remove(this._sourceId);
+
+                this._refresh();
+
+                this._sourceId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, this._refreshSeconds, () => {
+                    this._refresh();
+
+                    return GLib.SOURCE_CONTINUE;
+                });
+            }
+        }
     }
 )
 
 
 export default class DeutschExtension extends Extension {
+    constructor(metadata) {
+        super(metadata);
+
+        this._indicator = null;
+        this._sessionId = null;
+    }
+
+    _onSessionModeChanged(session) {
+        // if (session.currentMode === 'user' || session.parentMode === 'user') {
+        //     this._addIndicator();
+        // } else if (session.currentMode === 'unlock-dialog') {
+        //     this._removeIndicator();
+        // }
+    }
+
     enable() {
         console.debug(`enabling ${this.metadata.name}`);
+
+        // Ensure we take the correct action for the current session mode
+        this._onSessionModeChanged(Main.sessionMode);
+
+        // Watch for changes to the session mode
+        this._sessionId = Main.sessionMode.connect('updated', this._onSessionModeChanged.bind(this));
 
         this._indicator = new DeutschIndicator(this)
         Main.panel.addToStatusArea(this.uuid, this._indicator, 10, 'left');
@@ -148,6 +191,11 @@ export default class DeutschExtension extends Extension {
 
     disable() {
         console.debug(`disabling ${this.metadata.name}`);
+
+        if (this._sessionId) {
+            Main.sessionMode.disconnect(this._sessionId);
+            this._sessionId = null;
+        }
 
         this._indicator?.destroy();
         this._indicator = null;

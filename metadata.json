@@ -4,5 +4,6 @@
   "uuid": "gnome-deutsch@flameweb.org",
   "shell-version": [
     "46"
-  ]
+  ],
+  "session-modes": ["user"]
 }
