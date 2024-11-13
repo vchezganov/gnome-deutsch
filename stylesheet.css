@@ -12,3 +12,16 @@
     color: limegreen;
     font-weight: bold;
 }
+
+.primary-label {
+    color: orange;
+    font-weight: bold;
+    font-size: 1.4em;
+    margin-bottom: 1em;
+}
+
+.secondary-label {
+    color: limegreen;
+    font-weight: bold;
+    font-size: 1.2em;
+}

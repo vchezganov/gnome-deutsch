@@ -2,10 +2,13 @@ import St from 'gi://St';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
+import Clutter from 'gi://Clutter';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as Dialog from 'resource:///org/gnome/shell/ui/dialog.js';
+import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
 
 function shuffleArray(array) {
@@ -70,13 +73,24 @@ const DeutschIndicator = GObject.registerClass(
             this._startTimer();
 
             // Adding events
-            this.connect('button-release-event', () => {
-                this._next();
+            this._clickEvent = this.connect('button-release-event', (actor, event) => {
+                const mouseButton = event.get_button();
+
+                if (mouseButton === 1) {
+                    this._dialog();
+                } else if (mouseButton === 3) {
+                    this._next();
+                }
             });
         }
 
         _onDestroy() {
             this._stopTimer();
+
+            if (this._clickEvent) {
+                this.disconnect(this._clickEvent);
+                this._clickEvent = null;
+            }
         }
 
         _loadData(ext) {
@@ -141,6 +155,58 @@ const DeutschIndicator = GObject.registerClass(
             if (this._counter >= this._contents.length) {
                 this._counter = 0;
             }
+        }
+
+        _dialog() {
+            // Creating a dialog layout
+            const infoDialog = new ModalDialog.ModalDialog({
+                destroyOnClose: true,
+                styleClass: 'info-dialog',
+            });
+
+            // Adding a widget to the content area
+            const icon = new St.Icon({icon_name: 'dialog-information-symbolic'});
+            infoDialog.contentLayout.add_child(icon);
+
+            // const messageLayout = new Dialog.MessageDialogContent({
+            //     title: this._panelWord.get_text(),
+            //     description: this._panelText.get_text(),
+            // });
+            // infoDialog.contentLayout.add_child(messageLayout);
+
+            const box = new St.BoxLayout({
+                vertical: true,
+            });
+            infoDialog.contentLayout.add_child(box);
+
+            const labelWord = new St.Label({
+                text: this._panelWord.get_text(),
+                x_align: Clutter.ActorAlign.CENTER,
+                style_class: 'primary-label',
+            });
+            labelWord.clutter_text.line_wrap = true;
+            box.add_child(labelWord);
+
+            const labelText = new St.Label({
+                text: this._panelText.get_text(),
+                x_align: Clutter.ActorAlign.CENTER,
+                style_class: 'secondary-label',
+            });
+            labelText.clutter_text.line_wrap = true;
+            box.add_child(labelText);
+
+            infoDialog.setButtons([
+                {
+                    label: 'Close',
+                    isDefault: true,
+                    key: Clutter.Escape,
+                    action: () => {
+                        infoDialog.close(global.get_current_time());
+                    },
+                }
+            ]);
+
+            infoDialog.open(global.get_current_time());
         }
 
         _next() {
