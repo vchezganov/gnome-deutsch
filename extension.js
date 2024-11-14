@@ -3,6 +3,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 import Clutter from 'gi://Clutter';
+import Pango from 'gi://Pango';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -176,22 +177,26 @@ const DeutschIndicator = GObject.registerClass(
 
             const box = new St.BoxLayout({
                 vertical: true,
+                x_expand: true,
+                style_class: 'message-dialog-content',
             });
             infoDialog.contentLayout.add_child(box);
 
             const labelWord = new St.Label({
                 text: this._panelWord.get_text(),
                 x_align: Clutter.ActorAlign.CENTER,
-                style_class: 'primary-label',
+                style_class: 'message-dialog-title primary-label',
             });
+            labelWord.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
             labelWord.clutter_text.line_wrap = true;
             box.add_child(labelWord);
 
             const labelText = new St.Label({
                 text: this._panelText.get_text(),
                 x_align: Clutter.ActorAlign.CENTER,
-                style_class: 'secondary-label',
+                style_class: 'message-dialog-description secondary-label',
             });
+            labelText.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
             labelText.clutter_text.line_wrap = true;
             box.add_child(labelText);
 
