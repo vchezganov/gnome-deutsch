@@ -12,6 +12,9 @@ import * as Dialog from 'resource:///org/gnome/shell/ui/dialog.js';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
 
+import Ignore from './storage.js';
+
+
 function shuffleArray(array) {
     for (let i = array.length - 1; i >= 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -23,7 +26,7 @@ function shuffleArray(array) {
 const DeutschIndicator = GObject.registerClass(
     class DeutschIndicator extends PanelMenu.Button {
         _init(ext) {
-            const dontCreateMenu = true;
+            const dontCreateMenu = false;
             super._init(0, ext.metadata.name, dontCreateMenu);
 
             // Settings
@@ -74,14 +77,27 @@ const DeutschIndicator = GObject.registerClass(
             this._startTimer();
 
             // Adding events
-            this._clickEvent = this.connect('button-release-event', (actor, event) => {
-                const mouseButton = event.get_button();
+            // this._clickEvent = this.connect('button-release-event', (actor, event) => {
+            //     const mouseButton = event.get_button();
 
-                if (mouseButton === 1) {
-                    this._dialog();
-                } else if (mouseButton === 3) {
-                    this._next();
-                }
+            //     if (mouseButton === 1) {
+            //         this._dialog();
+            //     } else if (mouseButton === 3) {
+            //         this._next();
+            //     }
+            // });
+
+            this.menu.addAction('Show', () => {
+                this._dialog();
+            });
+            this.menu.addAction('Next', () => {
+                this._next();
+            });
+            this.menu.addAction('Ignore', () => {
+                const idx = this._indexes[this._counter];
+                this._ignore.append(idx);
+
+                this._next();
             });
         }
 
@@ -96,6 +112,10 @@ const DeutschIndicator = GObject.registerClass(
 
         _loadData(ext) {
             const extensionPath = ext.dir.get_child('data').get_path();
+
+            const fileIgnorePath = GLib.build_filenamev([extensionPath, 'ignore.txt']);
+            this._ignore = new Ignore(fileIgnorePath);
+
             const filePath = GLib.build_filenamev([extensionPath, 'words.json']);
             const fileStream = Gio.File.new_for_path(filePath);
 
@@ -105,13 +125,17 @@ const DeutschIndicator = GObject.registerClass(
             const contents = decoder.decode(data);
             const list = JSON.parse(contents);
 
-            shuffleArray(list)
+            this._contents = list; // .slice(0, 10);
+            this._indexes = [...Array(this._contents.length).keys()].filter((val) => {
+                return !this._ignore.contains(val);
+            });
 
-            this._contents = list;
+            shuffleArray(this._indexes);
+            // console.log(this._indexes);
         }
 
         _startTimer() {
-            this._total = 0;
+            // this._total = 0;
             this._counter = 0;
             this._state = 'name';
             this._refresh()
@@ -133,12 +157,14 @@ const DeutschIndicator = GObject.registerClass(
         }
 
         _refresh() {
-            if (this._counter < this._contents.length) {
-                const word = this._contents[this._counter];
+            if (this._counter < this._indexes.length) {
+                const idx = this._indexes[this._counter];
+                const word = this._contents[idx];
 
                 if (this._state === 'name') {
-                    this._total += 1;
-                    this._panelTotal.set_text(`${this._total}`)
+                    // this._total += 1;
+                    // this._panelTotal.set_text(`${this._total}`);
+                    this._panelTotal.set_text(`${this._counter + 1}`);
 
                     this._panelWord.set_text(word.word);
                     this._panelText.set_text(word.name);
@@ -153,7 +179,7 @@ const DeutschIndicator = GObject.registerClass(
             }
 
             this._counter += 1;
-            if (this._counter >= this._contents.length) {
+            if (this._counter >= this._indexes.length) {
                 this._counter = 0;
             }
         }
